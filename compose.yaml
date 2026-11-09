@@ -1,0 +1,26 @@
+services:
+  api:
+    build: .
+    environment:
+      MODEL_URL: http://mock-llm:8100/respond
+      TOOLS_URL: http://tools:8200/execute
+    ports:
+      # Regla permanente del laboratorio: la API solo escucha en el propio equipo.
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      - mock-llm
+      - tools
+    networks: [curso]
+  mock-llm:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.mock
+    networks: [curso]
+  tools:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.tools
+    networks: [curso]
+networks:
+  curso:
+    driver: bridge

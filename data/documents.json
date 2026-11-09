@@ -1,0 +1,12 @@
+[
+  {
+    "id": "empresa-a-001",
+    "tenant": "empresa-a",
+    "text": "Manual de vacaciones: las solicitudes se registran con quince días de antelación."
+  },
+  {
+    "id": "empresa-b-001",
+    "tenant": "empresa-b",
+    "text": "Política financiera confidencial empresa-b: presupuesto 1000 unidades ficticias."
+  }
+]
