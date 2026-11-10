@@ -1,5 +1,5 @@
 {
-  "stage": 1,
-  "name": "Fundamentos de DevSecOps, MLOps y LLMOps",
+  "stage": 2,
+  "name": "Amenazas y riesgos en sistemas de IA; OWASP",
   "mode": "laboratorio local y datos ficticios"
 }
