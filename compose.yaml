@@ -2,6 +2,8 @@ services:
   api:
     build: .
     environment:
+      # Obligatoria y sin valor por defecto: se lee de .env (ver .env.example).
+      DEMO_API_KEY: ${DEMO_API_KEY:?Falta DEMO_API_KEY. Copia .env.example a .env y genera una clave}
       MODEL_URL: http://mock-llm:8100/respond
       TOOLS_URL: http://tools:8200/execute
     ports:
