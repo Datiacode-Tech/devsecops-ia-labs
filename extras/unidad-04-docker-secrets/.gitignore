@@ -1,0 +1,5 @@
+# Credenciales de prueba generadas en el equipo: nunca se versionan.
+secrets/
+*.env
+__pycache__/
+.pytest_cache/

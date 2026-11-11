@@ -2,4 +2,8 @@ id,activo,amenaza,impacto,probabilidad,control,evidencia,estado
 R-01,API,Acceso sin credencial,Alto,Media,Autenticación,test_ask_requires_api_key,Mitigado
 R-02,Documentos RAG,Acceso a tenant ajeno,Alto,Media,Filtro de identidad,pendiente_U10_aislamiento,En seguimiento
 R-03,Agente,Acción no autorizada,Alto,Media,Allowlist,test_mutation_is_denied,Mitigado
+R-04,Repositorio Git,Credencial escrita en el código o subida al historial,Alto,Media,Clave solo en .env excluido de Git; valores de ejemplo rechazados; revisión manual con Gitleaks,test_api_key_not_hardcoded_in_source,Mitigado
 R-07,Herramientas,Entrada no validada en herramientas,Medio,Media,Validación de esquema,test_tool_document_id_invalid_format,Mitigado
+R-08,Registros de la API,Credencial expuesta en los logs,Alto,Media,Registro del motivo sin el valor y filtro de redacción,test_logs_redact_api_key,Mitigado
+R-09,Credencial de la API,Clave comprometida que sigue siendo válida,Alto,Media,Rotación manual con recreación del servicio api,test_rotation_rejects_old_key_and_accepts_new,Mitigado
+R-10,Credencial de la API,Secreto legible en el equipo y en los metadatos del contenedor (.env y variables de entorno),Medio,Media,Gestor de secretos con control de acceso y auditoría,pendiente_gestor_de_secretos,En seguimiento

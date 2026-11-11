@@ -1,0 +1,9 @@
+# El secreto llega al contenedor en tiempo de ejecución, nunca dentro de la imagen.
+secrets
+*.env
+.env*
+tests
+scripts
+__pycache__
+.pytest_cache
+*.md

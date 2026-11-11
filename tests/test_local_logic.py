@@ -9,8 +9,8 @@ def test_documents_have_tenant_and_id():
 def test_stage_is_valid():
     assert 1 <= STAGE <= 11
 
-def test_course_stage_is_unit_3():
-    assert STAGE == 3
+def test_course_stage_is_unit_4():
+    assert STAGE == 4
 
 @pytest.mark.parametrize('value', [None, '', 'cambia-esta-clave', 'corta'])
 def test_api_key_config_rejects_missing_or_weak(monkeypatch, value):

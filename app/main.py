@@ -3,9 +3,14 @@ from fastapi import FastAPI, Depends, HTTPException
 from pydantic import BaseModel, Field, StringConstraints
 import httpx
 import os
+from app import config
 from app.security import require_api_key
 from app.retrieval import search_documents
 from app.config import STAGE
+from app.log_redaction import install_redaction
+
+# Ningún registro de la API puede contener la clave configurada ni credenciales con nombre conocido.
+install_redaction(lambda: [config.API_KEY])
 
 app = FastAPI(title='Asistente documental seguro — DevSecOps IA', version='1.0')
 

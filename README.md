@@ -2,30 +2,36 @@
 
 **Entorno docente aislado**, no apto para producción. Utiliza datos de empresas ficticias, un modelo **simulado** y un servicio HTTP didáctico de herramientas que **no implementa MCP completo**.
 
-El proyecto evoluciona a lo largo del curso: cada unidad incorpora nuevas funcionalidades y controles de seguridad. Esta versión corresponde a los **ejemplos guiados de la Unidad 3: Desarrollo seguro y protección de APIs de IA** (`course_stage.json`, etapa 3).
+El proyecto evoluciona a lo largo del curso: cada unidad incorpora nuevas funcionalidades y controles de seguridad. Esta versión corresponde a los **ejemplos de la Unidad 4: Gestión segura de secretos y credenciales** (`course_stage.json`, etapa 4).
 
-## Objetivos de la Unidad 3
+## Objetivos de la Unidad 4
 
-- Proteger los endpoints de la API con una clave enviada en la cabecera `x-api-key`.
-- Mantener la clave fuera del código: se genera en el propio equipo y se guarda en `.env`, que no se sube a Git.
-- Validar las preguntas antes de que lleguen al modelo: ni vacías ni de más de 300 caracteres.
-- Distinguir **autenticación** (quién llama) de **autorización** (qué puede hacer y a qué datos accede).
-- Obtener evidencia de cada control con pruebas automatizadas y relacionarla con el registro de riesgos.
+- Tratar la API key del laboratorio como un **secreto** durante todo su ciclo de vida: generación, almacenamiento, uso, registro y rotación.
+- Mantener las credenciales fuera del código, de Git y de la imagen Docker.
+- Impedir que la API arranque con claves ausentes, cortas o de ejemplo.
+- Evitar que las credenciales aparezcan en los registros.
+- Rotar una clave comprometida y comprobar que la antigua deja de funcionar.
+- Conocer las limitaciones de las variables de entorno y una alternativa: Docker Compose Secrets.
 
-## Qué cambia respecto a la Unidad 2
+La técnica que se repite en todos los ejemplos es **comprobar sin mostrar**: se cuenta cuántas veces aparece la clave en un lugar, nunca se imprime.
 
-En la Unidad 2 cualquiera que llegara a la API podía consultarla sin credencial (riesgo R-01). En esta versión:
+## Qué cambia respecto a la Unidad 3
 
 | Control | Implementación |
 |---|---|
-| Autenticación por API key | Cabecera `x-api-key`, comprobada por una dependencia reutilizable (`require_api_key` en `app/security.py`) con el esquema `APIKeyHeader` de FastAPI |
-| Endpoints protegidos | `POST /ask` y `POST /tools/execute`. `GET /health` sigue siendo público |
-| Comparación segura | `hmac.compare_digest`: tarda lo mismo acierte o falle, para que el tiempo de respuesta no revele cuántos caracteres coinciden |
-| Respuesta 401 única | El mismo mensaje sin clave y con clave incorrecta. La respuesta nunca contiene la clave |
-| Clave fuera del código | Variable `DEMO_API_KEY` leída de `.env` por Docker Compose, sin valor por defecto. La API no arranca si falta, mantiene el valor de ejemplo o tiene menos de 16 caracteres |
-| Validación de preguntas | Pydantic (`StringConstraints`): entre 1 y 300 caracteres, sin contar los espacios iniciales y finales. Fuera de ese rango, `422` |
+| Rechazo de claves inseguras | La API no arranca si la clave falta, tiene menos de 16 caracteres, contiene valores de ejemplo conocidos (`cambia-esta-clave`, `curso-demo-key`, `password`…) o tiene menos de 8 caracteres distintos (`app/config.py`). El error indica el motivo, nunca el valor |
+| Registros sin credenciales | Los rechazos se registran con el motivo (`credencial ausente` o `credencial incorrecta`), sin el valor. Un filtro (`app/log_redaction.py`) sustituye por `[REDACTADO]` la clave configurada y cualquier `x-api-key`, `DEMO_API_KEY` o `authorization` con valor, en los registros de la API y de uvicorn |
+| Rotación de la clave | Nueva clave en `.env` y recreación solo del servicio `api` |
+| Docker Compose Secrets | Ejemplo independiente en `extras/unidad-04-docker-secrets/` |
+| Pruebas | `tests/test_secrets.py`: configuración, respuestas, registros y rotación |
 
-Se mantienen las medidas anteriores: API publicada solo en `127.0.0.1`, validación estructural de las peticiones y bloqueo de operaciones destructivas (`403` para cualquier operación distinta de `read_document`).
+Se mantienen los controles de las unidades anteriores:
+
+- `x-api-key` obligatoria en `POST /ask` y `POST /tools/execute`; `GET /health` es público;
+- preguntas de 1 a 300 caracteres;
+- validación de `ToolCall`: `operation` de 1 a 40 caracteres y `document_id` con el formato `empresa-<nombre>-<tres dígitos>` y 60 caracteres como máximo (`422` si no se cumple);
+- operaciones destructivas bloqueadas (`403`);
+- API publicada solo en `127.0.0.1`.
 
 ## Arquitectura
 
@@ -37,25 +43,23 @@ Equipo (127.0.0.1:8000)
    │   api   │ ────────────────────────▶ │ mock-llm │  modelo simulado [SIMULADO]
    │ FastAPI │ ────────────────────────▶ │  tools   │  herramientas de solo lectura
    └─────────┘                           └──────────┘
+       ▲
+   DEMO_API_KEY desde .env (solo api la recibe)
 ```
 
-| Servicio | Función |
-|---|---|
-| `api` | API FastAPI: autentica, valida, recupera documentos y coordina los servicios |
-| `mock-llm` | Proveedor de lenguaje simulado: devuelve una respuesta determinista marcada como `[SIMULADO]` |
-| `tools` | Servicio de herramientas de solo lectura |
-
-Solo `api` publica un puerto, y solo en el propio equipo. `mock-llm` y `tools` no son accesibles desde fuera de Docker.
+| Servicio | Función | ¿Recibe la clave? |
+|---|---|---|
+| `api` | API FastAPI: autentica, valida, recupera documentos y coordina los servicios | Sí, como variable de entorno |
+| `mock-llm` | Proveedor de lenguaje simulado: respuesta determinista marcada como `[SIMULADO]` | No |
+| `tools` | Servicio de herramientas de solo lectura | No |
 
 ## Requisitos
 
-- **Docker**: Docker Desktop en Windows (con el motor WSL 2) o Docker Engine con el complemento Compose v2 en Linux / WSL.
+- **Docker**: Docker Desktop en Windows (con el motor WSL 2) o Docker Engine con el complemento Compose v2 en Linux / WSL. El ejemplo 4 necesita Docker Compose 2.24 o posterior.
 - **Git**.
 - **Navegador web** para Swagger.
-- Puerto `8000` libre en el propio equipo.
-- No hace falta Python: la clave se genera y las pruebas se ejecutan dentro de contenedores.
-
-Comprobar las herramientas (igual en WSL / Linux y en PowerShell):
+- Puertos libres en el propio equipo: `8000` (laboratorio) y `8007` y `8008` (ejemplo 4).
+- No hace falta Python: las claves se generan y las pruebas se ejecutan dentro de contenedores.
 
 ```bash
 git --version
@@ -65,20 +69,20 @@ docker compose version
 
 ## Preparación
 
-### 1. Descargar la versión de la Unidad 3
+### 1. Descargar la versión de la Unidad 4
 
 El mismo comando sirve en WSL / Linux y en PowerShell:
 
 ```bash
-git clone --branch unidad-03-ejemplos https://github.com/Datiacode-Tech/devsecops-ia-labs.git devsecops-ia-unidad-03
-cd devsecops-ia-unidad-03
+git clone --branch unidad-04-ejemplos https://github.com/Datiacode-Tech/devsecops-ia-labs.git devsecops-ia-unidad-04
+cd devsecops-ia-unidad-04
 ```
 
 Git avisa de que la copia está en estado *detached HEAD*: es lo normal al descargar una etiqueta.
 
 ### 2. Crear `.env` con una clave generada
 
-La clave se genera con el generador criptográfico de Python (`secrets.token_urlsafe`) **dentro de un contenedor** y se escribe directamente en `.env`, sin mostrarla en pantalla ni escribirla en el código. `.env` está excluido de Git (`.gitignore`) y de la imagen Docker (`.dockerignore`).
+La clave se genera con `secrets.token_urlsafe` **dentro de un contenedor** y se escribe en `.env` sin mostrarla en pantalla.
 
 WSL / Linux:
 
@@ -87,6 +91,7 @@ cp .env.example .env
 CLAVE=$(docker run --rm python:3.12-slim python -c "import secrets; print(secrets.token_urlsafe(24))")
 sed -i "s|^DEMO_API_KEY=.*|DEMO_API_KEY=${CLAVE}|" .env
 unset CLAVE
+chmod 600 .env        # solo tu usuario puede leer el fichero
 ```
 
 Windows PowerShell:
@@ -98,11 +103,17 @@ $clave = docker run --rm python:3.12-slim python -c "import secrets; print(secre
 Remove-Variable clave
 ```
 
-- La primera vez Docker descarga la imagen `python:3.12-slim` (mensaje «Unable to find image… Pulling»): es normal.
-- La clave generada tiene 32 caracteres y queda solo en `.env`.
-- `.env.example` no lleva tildes a propósito: Windows PowerShell 5.1 reescribe el fichero y los caracteres no ASCII podrían alterarse.
+**No exportes `DEMO_API_KEY` en la terminal.** Docker Compose da prioridad a una variable de la sesión sobre `.env`, incluso si está vacía: al rotar la clave, el contenedor seguiría recibiendo el valor antiguo. Si en la Unidad 3 la cargaste en la sesión, elimínala:
 
-### 3. Validar la configuración y arrancar
+```bash
+unset DEMO_API_KEY                                          # WSL / Linux
+```
+
+```powershell
+Remove-Item Env:DEMO_API_KEY -ErrorAction SilentlyContinue  # PowerShell
+```
+
+### 3. Arrancar Docker Compose
 
 Igual en WSL / Linux y en PowerShell:
 
@@ -112,32 +123,25 @@ docker compose up -d --build
 docker compose ps
 ```
 
-- `docker compose config --quiet` no muestra nada si la configuración es correcta. Sin `.env` muestra: `required variable DEMO_API_KEY is missing a value`.
-- **No ejecutes `docker compose config` sin `--quiet`** si vas a compartir la salida: muestra el valor de la clave.
-- `docker compose ps` debe mostrar `api`, `mock-llm` y `tools` en estado `running`. La primera construcción tarda unos minutos.
-- Si `.env` mantiene el valor de ejemplo, `api` termina (`Exited (1)`) y `docker compose logs api` explica el motivo sin mostrar ningún valor.
+- `docker compose config --quiet` no muestra nada si la configuración es correcta. **Sin `--quiet` muestra el valor de la clave**: no compartas esa salida.
+- `docker compose ps` debe mostrar `api`, `mock-llm` y `tools` en estado `running`.
+- Si `api` termina (`Exited (1)`), `docker compose logs api` explica el motivo sin mostrar ningún valor.
 
-### 4. Abrir Swagger
+Swagger: http://127.0.0.1:8000/docs. Pulsa **Authorize**, pega la clave (está en `.env`) y prueba los endpoints protegidos.
 
-Abre http://127.0.0.1:8000/docs en el navegador. Los endpoints protegidos muestran un candado. Pulsa **Authorize**, pega la clave (cópiala de `.env`) y confirma. Después usa **Try it out** en cada endpoint.
+### 4. Leer la clave en una variable no exportada
 
-### 5. Cargar la clave en la terminal sin mostrarla
-
-WSL / Linux:
+Para usar la clave en las peticiones se lee de `.env` a una variable **de la terminal, no exportada**: Docker Compose no la ve.
 
 ```bash
-set -a; . ./.env; set +a
+CLAVE=$(sed -n 's/^DEMO_API_KEY=//p' .env | tr -d '\r')                                      # WSL / Linux
 ```
-
-Windows PowerShell:
 
 ```powershell
-$env:DEMO_API_KEY = (Select-String -Path .env -Pattern '^DEMO_API_KEY=(.+)$').Matches[0].Groups[1].Value
+$clave = (Select-String -Path .env -Pattern '^DEMO_API_KEY=(.+)$').Matches[0].Groups[1].Value   # PowerShell
 ```
 
-### 6. Función auxiliar de PowerShell
-
-`Invoke-WebRequest` lanza una excepción con los códigos 4xx. Esta función muestra siempre el código HTTP y el cuerpo de la respuesta. Pégala una vez en la sesión de PowerShell:
+En PowerShell, `Invoke-WebRequest` lanza una excepción con los códigos 4xx. Esta función muestra siempre el código y el cuerpo; pégala una vez en la sesión:
 
 ```powershell
 function Invoke-Lab {
@@ -156,275 +160,337 @@ function Invoke-Lab {
         "HTTP $([int]$_.Exception.Response.StatusCode) $($_.ErrorDetails.Message)"
     }
 }
-
-$pregunta = @{ question = '¿Cuántos días de vacaciones tengo?'; tenant = 'empresa-a' }
 ```
 
 Si los acentos se ven mal en la consola de PowerShell, ejecuta antes `[Console]::OutputEncoding = [Text.Encoding]::UTF8`.
 
-## Ejemplos guiados
+## Ejemplos
 
-Resumen de los resultados esperados:
+| N.º | Ejemplo | Archivos que intervienen |
+|---|---|---|
+| 1 | Protección de credenciales | `.env`, `.env.example`, `.gitignore`, `.dockerignore`, `compose.yaml`, `app/config.py` |
+| 2 | Protección de logs | `app/log_redaction.py`, `app/security.py`, `app/main.py`, `scripts/demo_unidad_04_logs.py` |
+| 3 | Rotación de API keys | `.env`, `compose.yaml`, `app/config.py`, `app/security.py` |
+| 4 | Docker Compose Secrets | `extras/unidad-04-docker-secrets/` (`compose.secrets-demo.yaml`, `app/main.py`, `scripts/verificar.*`, `tests/test_secreto.py`) |
 
-| Situación | HTTP |
-|---|---|
-| `GET /health` sin clave | 200 |
-| `POST /ask` sin clave | 401 |
-| `POST /ask` con clave incorrecta | 401 |
-| `POST /ask` con clave correcta y pregunta válida | 200 |
-| Pregunta vacía o de más de 300 caracteres, con clave correcta | 422 |
-| `delete_document` con clave correcta | 403 |
+### Ejemplo 1. Protección de credenciales
 
-### Ejemplo 1. Comprobar que la API funciona
+**Objetivo:** comprobar que la clave solo llega por configuración, que no está en Git ni en la imagen, y que la API se niega a arrancar con valores inseguros.
 
-- **Objetivo:** confirmar que el servicio responde y que es la versión de la Unidad 3.
-- **Control:** `/health` es público a propósito, para la monitorización, y no expone datos.
+Igual en WSL / Linux y en PowerShell:
 
 ```bash
-curl -s -w ' HTTP %{http_code}\n' http://127.0.0.1:8000/health
+# 1. El código solo referencia la variable por su nombre
+git grep -n -e DEMO_API_KEY -- app compose.yaml
+
+# 2. .env está excluido de Git
+git check-ignore -v .env
+git ls-files .env
+
+# 3. .env está excluido de la imagen Docker
+git grep -n -e '^.env' -- .dockerignore
+docker compose run --rm --no-deps api ls -a /code
+
+# 4. La API no arranca sin clave, con valores de ejemplo o con una clave corta
+docker compose run --rm --no-deps -e DEMO_API_KEY= api python -c "import app.config"
+docker compose run --rm --no-deps -e DEMO_API_KEY=curso-demo-key-local api python -c "import app.config"
+docker compose --env-file .env.example run --rm --no-deps api python -c "import app.config"
+docker compose run --rm --no-deps -e DEMO_API_KEY=corta api python -c "import app.config"
+
+# 5. Con la clave de .env, la configuración es válida
+docker compose run --rm --no-deps api python -c "import app.config; print('configuracion valida')"
+```
+
+Resultados esperados:
+
+- `git check-ignore -v .env` muestra la regla que lo excluye (`.gitignore:1:.env`) y `git ls-files .env` no devuelve nada.
+- `ls -a /code` lista el contenido de la imagen (`app`, `data`, `course_stage.json`…) y no aparece `.env`: `.dockerignore` lo excluye del contexto de construcción.
+- Cada arranque del paso 4 termina con un `RuntimeError` cuya última línea indica el motivo: `ausente`, `valor de ejemplo o inseguro` (las dos siguientes) y `longitud insuficiente`. El valor recibido no aparece nunca.
+- El paso 5 muestra `configuracion valida`.
+
+Dónde está la clave, contando apariciones sin mostrarla (con la clave leída como en el apartado 4 de la preparación):
+
+```bash
+git grep -F -l -e "$CLAVE" | wc -l                                   # ficheros versionados: 0
+git log --all -p | grep -c -F -e "$CLAVE"                            # historial Git: 0
+docker inspect $(docker compose ps -q api) | grep -c -F -e "$CLAVE"  # metadatos del contenedor: 1
 ```
 
 ```powershell
-Invoke-Lab GET /health
+(git grep -F -l -e $clave | Measure-Object).Count
+(git log --all -p | Select-String -SimpleMatch $clave | Measure-Object).Count
+(docker inspect (docker compose ps -q api) | Select-String -SimpleMatch $clave | Measure-Object).Count
 ```
 
-- **Resultado esperado:** `HTTP 200` y `{"status":"ok","stage":3,"model":"mock"}`.
-- **Qué demuestra:** la API está en marcha sin pedir clave; `stage: 3` identifica la unidad.
+El último vale 1: una variable de entorno queda en claro en los metadatos del contenedor. Es la limitación que aborda el ejemplo 4.
 
-### Ejemplo 2. Consulta sin autenticación
+`-e DEMO_API_KEY=…` en la línea de comandos solo es aceptable con valores de prueba que no funcionan, como aquí: un valor real quedaría en el historial de la terminal.
 
-- **Objetivo:** comprobar que `/ask` ya no admite peticiones anónimas (en la Unidad 2 devolvía 200).
-- **Control:** la dependencia `require_api_key`.
+### Ejemplo 2. Protección de logs
+
+**Objetivo:** ver la diferencia entre un registro inseguro y uno seguro, y comprobar que la API no registra credenciales.
+
+Demostración con una clave ficticia: registro mal diseñado, el mismo registro con el filtro de redacción y el diseño correcto (igual en WSL / Linux y en PowerShell):
 
 ```bash
-curl -s -w ' HTTP %{http_code}\n' -X POST http://127.0.0.1:8000/ask \
-  -H 'Content-Type: application/json' \
-  -d '{"question":"¿Cuántos días de vacaciones tengo?","tenant":"empresa-a"}'
+docker compose run --rm --no-deps -T -v ./scripts:/code/scripts:ro api python -m scripts.demo_unidad_04_logs
 ```
 
-```powershell
-Invoke-Lab POST /ask $pregunta
-```
-
-- **Resultado esperado:** `HTTP 401` y `{"detail":"Credencial ausente o incorrecta"}`.
-- **Qué demuestra:** sin credencial, la petición no llega a la recuperación de documentos ni al modelo. R-01 deja de ser explotable.
-
-### Ejemplo 3. Clave incorrecta
-
-- **Objetivo:** comprobar que una clave inventada se rechaza igual que la ausencia de clave.
-- **Control:** comparación en tiempo constante y mensaje único.
-
-```bash
-INCORRECTA=clave-incorrecta-de-prueba
-curl -s -w ' HTTP %{http_code}\n' -X POST http://127.0.0.1:8000/ask \
-  -H 'Content-Type: application/json' -H "x-api-key: $INCORRECTA" \
-  -d '{"question":"¿Cuántos días de vacaciones tengo?","tenant":"empresa-a"}'
-```
-
-```powershell
-Invoke-Lab POST /ask $pregunta 'clave-incorrecta-de-prueba'
-```
-
-- **Resultado esperado:** `HTTP 401` y el mismo mensaje del ejemplo 2.
-- **Qué demuestra:** el mensaje no permite distinguir «falta la clave» de «la clave está mal», así que no da pistas a quien intenta adivinarla. La respuesta nunca contiene la clave.
-
-### Ejemplo 4. Consulta con clave válida (terminal y Swagger)
-
-- **Objetivo:** comprobar que una petición autenticada funciona igual que antes.
-- **Control:** la dependencia deja pasar la petición cuando la clave coincide.
-
-```bash
-curl -s -w ' HTTP %{http_code}\n' -X POST http://127.0.0.1:8000/ask \
-  -H 'Content-Type: application/json' -H "x-api-key: $DEMO_API_KEY" \
-  -d '{"question":"¿Cuántos días de vacaciones tengo?","tenant":"empresa-a"}'
-```
-
-```powershell
-Invoke-Lab POST /ask $pregunta $env:DEMO_API_KEY
-```
-
-- **Resultado esperado:** `HTTP 200`. `answer` empieza por `[SIMULADO]`, `sources` contiene `empresa-a-001` y `empresa-a-002`, y `stage` vale 3.
-- **En Swagger:** **Authorize** con la clave, después `POST /ask` → **Try it out** → **Execute**. Sin autorizar, Swagger obtiene el mismo 401 del ejemplo 2.
-- **Qué demuestra:** la autenticación no cambia el comportamiento para quien tiene la clave. Observa que el texto del documento `empresa-a-002` sigue llegando a la respuesta: autenticar la petición no filtra el contexto que recibe el modelo.
-
-### Ejemplo 5. Pregunta que supera el límite
-
-- **Objetivo:** comprobar el límite de 300 caracteres y el rechazo de preguntas vacías.
-- **Control:** `StringConstraints` de Pydantic en el modelo `Question` (`QUESTION_MAX_LENGTH = 300`).
+En la API real, una petición con una clave incorrecta deja el motivo en el registro, sin el valor.
 
 WSL / Linux:
 
 ```bash
-LARGA=$(printf 'x%.0s' $(seq 301))
-curl -s -w ' HTTP %{http_code}\n' -X POST http://127.0.0.1:8000/ask \
-  -H 'Content-Type: application/json' -H "x-api-key: $DEMO_API_KEY" \
-  -d "{\"question\":\"$LARGA\"}"
+INCORRECTA=clave-incorrecta-de-prueba-$RANDOM
+curl -s -o /dev/null -w '%{http_code}\n' -X POST http://127.0.0.1:8000/ask \
+  -H 'Content-Type: application/json' -H "x-api-key: $INCORRECTA" -d '{"question":"vacaciones"}'   # 401
+curl -s -o /dev/null -w '%{http_code}\n' -X POST http://127.0.0.1:8000/ask \
+  -H 'Content-Type: application/json' -H "x-api-key: $CLAVE" -d '{"question":"vacaciones"}'        # 200
+docker compose logs api | grep 'rechazada'
+docker compose logs api | grep -c -F -e "$INCORRECTA"     # 0
+docker compose logs api | grep -c -F -e "$CLAVE"          # 0
+unset INCORRECTA
+```
 
-JUSTA=$(printf 'x%.0s' $(seq 300))
-curl -s -o /dev/null -w 'HTTP %{http_code}\n' -X POST http://127.0.0.1:8000/ask \
-  -H 'Content-Type: application/json' -H "x-api-key: $DEMO_API_KEY" \
-  -d "{\"question\":\"$JUSTA\"}"
+Windows PowerShell (con `Invoke-Lab`):
 
-curl -s -w ' HTTP %{http_code}\n' -X POST http://127.0.0.1:8000/ask \
-  -H 'Content-Type: application/json' -H "x-api-key: $DEMO_API_KEY" \
-  -d '{"question":""}'
+```powershell
+$incorrecta = "clave-incorrecta-de-prueba-$(Get-Random)"
+Invoke-Lab POST /ask @{ question = 'vacaciones' } $incorrecta     # 401
+Invoke-Lab POST /ask @{ question = 'vacaciones' } $clave          # 200
+docker compose logs api | Select-String 'rechazada'
+(docker compose logs api | Select-String -SimpleMatch $incorrecta | Measure-Object).Count   # 0
+(docker compose logs api | Select-String -SimpleMatch $clave | Measure-Object).Count        # 0
+Remove-Variable incorrecta
+```
 
-curl -s -w ' HTTP %{http_code}\n' -X POST http://127.0.0.1:8000/ask \
-  -H 'Content-Type: application/json' \
-  -d "{\"question\":\"$LARGA\"}"
+Resultado esperado: `Autenticación rechazada: credencial incorrecta` en el registro y 0 apariciones de ambas claves. Las pruebas `test_logs_redact_api_key` y `test_auth_failures_are_logged_without_credentials` lo comprueban de forma automática.
+
+### Ejemplo 3. Rotación de API keys
+
+**Objetivo:** sustituir una clave que ha podido quedar expuesta y comprobar que la antigua deja de funcionar. Solo se recrea el servicio `api`, que es el único que usa la clave.
+
+WSL / Linux:
+
+```bash
+unset DEMO_API_KEY                                   # imprescindible: si no, Compose usaría el valor de la sesión
+ANTIGUA=$(sed -n 's/^DEMO_API_KEY=//p' .env | tr -d '\r')
+NUEVA=$(docker run --rm python:3.12-slim python -c "import secrets; print(secrets.token_urlsafe(24))")
+sed -i "s|^DEMO_API_KEY=.*|DEMO_API_KEY=${NUEVA}|" .env
+docker compose up -d --no-deps api                   # debe mostrar «Recreated»
+until curl -sf http://127.0.0.1:8000/health >/dev/null; do sleep 1; done
+for K in "$ANTIGUA" "$NUEVA"; do
+  curl -s -o /dev/null -w '%{http_code}\n' -X POST http://127.0.0.1:8000/ask \
+    -H 'Content-Type: application/json' -H "x-api-key: $K" -d '{"question":"vacaciones"}'
+done                                                 # 401 con la antigua, 200 con la nueva
+CLAVE=$NUEVA
+unset ANTIGUA NUEVA K
+```
+
+Windows PowerShell (con `Invoke-Lab`):
+
+```powershell
+Remove-Item Env:DEMO_API_KEY -ErrorAction SilentlyContinue
+$antigua = (Select-String -Path .env -Pattern '^DEMO_API_KEY=(.+)$').Matches[0].Groups[1].Value
+$nueva = docker run --rm python:3.12-slim python -c "import secrets; print(secrets.token_urlsafe(24))"
+(Get-Content .env) -replace '^DEMO_API_KEY=.*', "DEMO_API_KEY=$nueva" | Set-Content -Encoding ascii .env
+docker compose up -d --no-deps api
+do { Start-Sleep 1; try { $ok = (Invoke-WebRequest http://127.0.0.1:8000/health -UseBasicParsing).StatusCode -eq 200 } catch { $ok = $false } } until ($ok)
+Invoke-Lab POST /ask @{ question = 'vacaciones' } $antigua        # 401
+Invoke-Lab POST /ask @{ question = 'vacaciones' } $nueva          # 200
+$clave = $nueva
+Remove-Variable antigua, nueva
+```
+
+- Si `docker compose up` muestra `Running` en lugar de `Recreated`, la clave nueva no ha llegado al contenedor (normalmente porque `DEMO_API_KEY` sigue definida en la sesión).
+- `docker compose restart api` **no sirve**: reinicia el contenedor con la configuración antigua.
+- Durante la recreación la API deja de responder unos segundos. En producción se evita con un periodo en el que se aceptan ambas claves, despliegues escalonados y la revocación posterior de la antigua.
+- Recuerda actualizar la clave en Swagger (**Authorize**).
+
+### Ejemplo 4. Docker Compose Secrets
+
+**Objetivo:** entregar la credencial como un **fichero** montado en `/run/secrets/` en lugar de como variable de entorno, y comparar ambas opciones.
+
+Es una demostración **independiente de la API principal**: tiene su propio `compose.secrets-demo.yaml`, su propia API mínima y su propio proyecto de Docker Compose (`devsecops-ia-u04-secretos`). No usa `.env` ni modifica el laboratorio, que puede seguir en marcha.
+
+| Servicio | Puerto | Origen de la clave |
+|---|---|---|
+| `api-secreto` | `127.0.0.1:8007` | Fichero montado en `/run/secrets/demo_api_key` |
+| `api-entorno` (perfil `comparar`) | `127.0.0.1:8008` | Variable de entorno `DEMO_API_KEY`, solo para comparar |
+
+**1. Generar el secreto sin mostrarlo.** Desde la carpeta del ejemplo:
+
+```bash
+cd extras/unidad-04-docker-secrets
+```
+
+WSL / Linux:
+
+```bash
+mkdir -p secrets
+( umask 077
+  CLAVE=$(docker run --rm python:3.12.16-slim python -c "import secrets; print(secrets.token_urlsafe(24), end='')")
+  printf '%s' "$CLAVE" > secrets/demo_api_key.txt
+  printf 'DEMO_API_KEY=%s\n' "$CLAVE" > secrets/demo.env )
+chmod 600 secrets/demo_api_key.txt secrets/demo.env
 ```
 
 Windows PowerShell:
 
 ```powershell
-Invoke-Lab POST /ask @{ question = ('x' * 301) } $env:DEMO_API_KEY
-Invoke-Lab POST /ask @{ question = ('x' * 300) } $env:DEMO_API_KEY
-Invoke-Lab POST /ask @{ question = '' } $env:DEMO_API_KEY
-Invoke-Lab POST /ask @{ question = ('x' * 301) }
+New-Item -ItemType Directory -Force secrets | Out-Null
+$c = docker run --rm python:3.12.16-slim python -c "import secrets; print(secrets.token_urlsafe(24), end='')"
+$dir = Join-Path (Get-Location).ProviderPath 'secrets'
+[IO.File]::WriteAllText((Join-Path $dir 'demo_api_key.txt'), $c)
+[IO.File]::WriteAllText((Join-Path $dir 'demo.env'), "DEMO_API_KEY=$c`n")
+Remove-Variable c
+foreach ($f in 'demo_api_key.txt', 'demo.env') { icacls (Join-Path $dir $f) /inheritance:r /grant:r "${env:USERNAME}:(R,W)" | Out-Null }
 ```
 
-| Pregunta | Resultado esperado |
-|---|---|
-| 301 caracteres, con clave | `HTTP 422`, `"type":"string_too_long"` |
-| 300 caracteres, con clave | `HTTP 200` |
-| Vacía, con clave | `HTTP 422`, `"type":"string_too_short"` |
-| 301 caracteres, **sin** clave | `HTTP 401` |
+Si la carpeta del laboratorio está dentro de WSL (`\\wsl.localhost\...`), `icacls` responde «Función incorrecta» y no cambia los permisos: en ese caso restríngelos desde WSL con `chmod 600 secrets/demo_api_key.txt secrets/demo.env`.
 
-- **Qué demuestra:** la validación rechaza la entrada antes de que llegue al modelo, lo que reduce el abuso con entradas largas.
-- **Orden de las comprobaciones:** con un cuerpo JSON bien formado se comprueba primero la clave, así que una petición sin clave recibe `401` aunque la pregunta sea demasiado larga. Un cuerpo que no es JSON válido recibe `422` antes de comprobar la clave, porque FastAPI lo analiza primero.
-- La respuesta `422` de FastAPI repite el texto enviado en el campo `input`.
+`secrets/` está excluida de Git y de la imagen. `secrets/demo.env` contiene la misma clave como variable de entorno y solo se usa para la comparación.
 
-### Ejemplo 6. Operación destructiva con clave válida
-
-- **Objetivo:** comprobar que autenticarse no da permiso para todo.
-- **Control:** lista de operaciones permitidas en `/tools/execute` (desde la Unidad 1), ahora detrás de la autenticación.
+**2. Arrancar los dos servicios** (igual en WSL / Linux y en PowerShell):
 
 ```bash
-curl -s -w ' HTTP %{http_code}\n' -X POST http://127.0.0.1:8000/tools/execute \
-  -H 'Content-Type: application/json' -H "x-api-key: $DEMO_API_KEY" \
-  -d '{"operation":"delete_document","document_id":"empresa-a-001"}'
-
-curl -s -w ' HTTP %{http_code}\n' -X POST http://127.0.0.1:8000/tools/execute \
-  -H 'Content-Type: application/json' -H "x-api-key: $DEMO_API_KEY" \
-  -d '{"operation":"read_document","document_id":"empresa-a-001"}'
-
-curl -s -w ' HTTP %{http_code}\n' -X POST http://127.0.0.1:8000/tools/execute \
-  -H 'Content-Type: application/json' \
-  -d '{"operation":"read_document","document_id":"empresa-a-001"}'
+docker compose -f compose.secrets-demo.yaml config --quiet
+docker compose -f compose.secrets-demo.yaml up -d --build api-secreto
+docker compose -f compose.secrets-demo.yaml --profile comparar up -d api-entorno
 ```
 
-```powershell
-Invoke-Lab POST /tools/execute @{ operation = 'delete_document'; document_id = 'empresa-a-001' } $env:DEMO_API_KEY
-Invoke-Lab POST /tools/execute @{ operation = 'read_document'; document_id = 'empresa-a-001' } $env:DEMO_API_KEY
-Invoke-Lab POST /tools/execute @{ operation = 'read_document'; document_id = 'empresa-a-001' }
+**3. Lectura desde `/run/secrets/`** (se muestran los permisos y la longitud, nunca el contenido):
+
+```bash
+docker compose -f compose.secrets-demo.yaml exec api-secreto stat -c '%A %n' /run/secrets/demo_api_key
+docker compose -f compose.secrets-demo.yaml exec api-secreto python -c "from pathlib import Path; print(len(Path('/run/secrets/demo_api_key').read_text().strip()), 'caracteres')"
+docker compose -f compose.secrets-demo.yaml logs api-secreto
 ```
 
-| Variante | Resultado esperado |
-|---|---|
-| `delete_document`, con clave | `HTTP 403` y `{"detail":"Operación no permitida"}` |
-| `read_document`, con clave | `HTTP 200` y `"status":"read-only"` |
-| `read_document`, sin clave | `HTTP 401` |
+El registro muestra `Clave cargada desde: secreto`. `http://127.0.0.1:8007/health` devuelve `"origen_clave":"secreto"` y `http://127.0.0.1:8008/health`, `"origen_clave":"entorno"`.
 
-- **Qué demuestra:** `401` significa «no sé quién eres»; `403`, «sé quién eres, pero esto no está permitido». La autenticación se suma a la lista de operaciones permitidas; no la sustituye.
+**4. Diferencia respecto a una variable de entorno** (igual en WSL / Linux y en PowerShell):
 
-### Ejemplo 7. Pruebas automatizadas
+```bash
+docker compose -f compose.secrets-demo.yaml exec api-secreto python -c "import os; print('DEMO_API_KEY' in os.environ)"
+docker compose -f compose.secrets-demo.yaml --profile comparar exec api-entorno python -c "import os; print('DEMO_API_KEY' in os.environ)"
+```
 
-- **Objetivo:** obtener evidencia automatizada de todos los controles.
-- **Cómo:** pytest dentro del contenedor de la API, con `tests/` y `security/` montados en solo lectura. Requiere `.env` configurado.
+Apariciones del valor en `docker inspect`, sin mostrarlo.
 
 WSL / Linux:
 
 ```bash
-docker compose run --rm \
-  -v ./tests:/code/tests:ro \
-  -v ./security:/code/security:ro \
-  -e PYTHONDONTWRITEBYTECODE=1 \
-  api python -m pytest -q -p no:cacheprovider /code/tests
+SEC=$(docker compose -f compose.secrets-demo.yaml ps -q api-secreto)
+ENT=$(docker compose -f compose.secrets-demo.yaml --profile comparar ps -q api-entorno)
+docker inspect $SEC | grep -cF -- "$(cat secrets/demo_api_key.txt)"     # 0
+docker inspect $ENT | grep -cF -- "$(cat secrets/demo_api_key.txt)"     # 1
 ```
 
-Windows PowerShell (en una sola línea):
+Windows PowerShell:
 
 ```powershell
+$sec = docker compose -f compose.secrets-demo.yaml ps -q api-secreto
+$ent = docker compose -f compose.secrets-demo.yaml --profile comparar ps -q api-entorno
+$valor = [IO.File]::ReadAllText((Join-Path (Get-Location).ProviderPath 'secrets\demo_api_key.txt')).Trim()
+@(docker inspect $sec | Select-String -SimpleMatch $valor).Count     # 0
+@(docker inspect $ent | Select-String -SimpleMatch $valor).Count     # 1
+Remove-Variable valor
+```
+
+| Comprobación | `api-secreto` (fichero) | `api-entorno` (variable) |
+|---|---|---|
+| `'DEMO_API_KEY' in os.environ` | `False` | `True` |
+| Apariciones del valor en `docker inspect` | 0 | 1 |
+| `docker compose config` sin `--quiet` | Solo la ruta del fichero | Muestra el valor |
+| Montaje | `/run/secrets/demo_api_key`, solo lectura | — |
+
+**5. Verificación completa y pruebas.** El script arranca la demostración, comprueba permisos, montajes, entorno, `docker inspect`, la autenticación (401 sin clave, 401 con clave incorrecta, 200 con la correcta), las pruebas y los registros, y la detiene. Termina con código 0 si todo es correcto:
+
+```bash
+bash scripts/verificar.sh
+```
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\verificar.ps1
+```
+
+Solo las pruebas, dentro del contenedor (resultado esperado: `5 passed`):
+
+```bash
+docker compose -f compose.secrets-demo.yaml run --rm --no-deps -v ./tests:/demo/tests:ro api-secreto python -m pytest -q -p no:cacheprovider /demo/tests
+```
+
+**6. Detener y limpiar:**
+
+```bash
+docker compose -f compose.secrets-demo.yaml --profile comparar down --rmi all
+rm -f secrets/demo_api_key.txt secrets/demo.env          # WSL / Linux
+cd ../..
+```
+
+```powershell
+docker compose -f compose.secrets-demo.yaml --profile comparar down --rmi all
+Remove-Item secrets\demo_api_key.txt, secrets\demo.env   # PowerShell
+Set-Location ..\..
+```
+
+**Limitaciones:** Docker Compose **no cifra** el secreto: monta el fichero del equipo en solo lectura. El fichero de origen sigue en claro en el disco, y quien tenga acceso a Docker puede leerlo dentro del contenedor. El cifrado y la distribución controlada de secretos corresponden a Docker Swarm, Kubernetes o un gestor de secretos (HashiCorp Vault o los servicios de los proveedores cloud). Más detalle en `extras/unidad-04-docker-secrets/README.md`.
+
+## Pruebas
+
+Dentro del contenedor de la API, montando las pruebas y el registro de riesgos. El mismo comando sirve en WSL / Linux y en PowerShell:
+
+```bash
 docker compose run --rm -v ./tests:/code/tests:ro -v ./security:/code/security:ro -e PYTHONDONTWRITEBYTECODE=1 api python -m pytest -q -p no:cacheprovider /code/tests
 ```
 
-- **Resultado esperado:** `22 passed` (puede aparecer `1 warning`, una deprecación de Starlette ajena al laboratorio).
-- **Qué demuestra:** cada control tiene al menos una prueba. `test_ask_requires_api_key` es la evidencia de R-01 en el registro de riesgos.
+Resultado esperado: `48 passed` (puede aparecer `1 warning`). Requiere `.env` configurado.
 
 | Fichero | Qué comprueba |
 |---|---|
-| `tests/test_api.py` | `/health` público; `401` sin clave o con clave incorrecta en `/ask` y `/tools/execute`; `200` con clave válida; `403` en `delete_document`; `401` antes que `422`; preguntas vacías, en blanco, de 300 y de 301 caracteres; R-02 sigue abierto |
-| `tests/test_local_logic.py` | Coherencia de los documentos, etapa 3 y rechazo al arrancar de una clave ausente, vacía, de ejemplo o demasiado corta |
-| `tests/test_risk_register.py` | Estructura del registro y evidencias existentes o pendientes |
-| `tests/conftest.py` | Clave de las pruebas: la de `.env` dentro del contenedor, o una temporal si se ejecutan fuera |
-
-Opcional, sin contenedores y con Python 3 en el equipo (las pruebas generan una clave temporal si no existe `DEMO_API_KEY`):
-
-```bash
-python -m pip install -r requirements.txt
-python -m pytest -q
-```
-
-### Ejemplo 8. Registros y riesgos pendientes
-
-- **Objetivo:** revisar qué queda registrado y qué riesgos siguen abiertos.
-
-```bash
-docker compose logs --tail=30 api
-```
-
-- **Resultado esperado:** líneas con `401 Unauthorized`, `200 OK`, `422 Unprocessable Entity` y `403 Forbidden`. La clave no aparece en los registros.
-
-Riesgo que sigue abierto (R-02, acceso a documentos de otra empresa):
-
-```bash
-curl -s -w ' HTTP %{http_code}\n' -X POST http://127.0.0.1:8000/ask \
-  -H 'Content-Type: application/json' -H "x-api-key: $DEMO_API_KEY" \
-  -d '{"question":"presupuesto","tenant":"empresa-a"}'
-```
-
-```powershell
-Invoke-Lab POST /ask @{ question = 'presupuesto'; tenant = 'empresa-a' } $env:DEMO_API_KEY
-```
-
-- **Resultado esperado:** `HTTP 200` y `sources` incluye `empresa-b-001`.
-- **Qué demuestra:** con una clave válida, `empresa-a` sigue obteniendo un documento confidencial de `empresa-b`. La clave autentica, pero no autoriza por tenant: todas las peticiones válidas se atribuyen a la misma identidad y el campo `tenant` no se usa para filtrar. **Autenticación no es autorización.** Este riesgo se trata en la Unidad 10.
-
-Opcional, si el equipo tiene Python 3: `python scripts/demo_unidad_03.py` ejecuta la secuencia de comprobaciones de los ejemplos 1 a 6.
+| `tests/test_api.py` | Autenticación, validación de preguntas, operaciones bloqueadas |
+| `tests/test_tools_validation.py` | Validación de `operation` y `document_id` en `/tools/execute` |
+| `tests/test_secrets.py` | Configuración de la clave, respuestas, registros y rotación (Unidad 4) |
+| `tests/test_local_logic.py`, `tests/test_risk_register.py`, `tests/test_soporte.py` | Datos, etapa, registro de riesgos e informe de soporte |
 
 ## Registro de riesgos
 
-`security/risk_register.csv` relaciona cada riesgo con su control y su evidencia. Una evidencia `test_*` es una prueba que existe en `tests/`; una evidencia pendiente (`pendiente_*` o `*_pendiente`) es una prueba prevista que todavía no existe, y ese riesgo no puede figurar como `Mitigado`.
+`security/risk_register.csv` relaciona cada riesgo con su control y su evidencia. Una evidencia `test_*` es una prueba que existe en `tests/`; una evidencia pendiente (`pendiente_*`) es una prueba prevista que todavía no existe, y ese riesgo no puede figurar como `Mitigado`.
 
-| Riesgo | Estado en la Unidad 3 |
+| Riesgo | Estado en la Unidad 4 |
 |---|---|
-| R-01 Acceso sin credencial | Mitigado: `/ask` y `/tools/execute` exigen la clave (`test_ask_requires_api_key`) |
-| R-02 Acceso a tenant ajeno | En seguimiento (Unidad 10): la clave autentica, pero no limita los documentos al tenant |
-| R-03 Acción no autorizada | Mitigado: lista de operaciones permitidas (`test_mutation_is_denied`) |
+| R-01 Acceso sin credencial | Mitigado: `test_ask_requires_api_key` |
+| R-02 Acceso a tenant ajeno | En seguimiento (Unidad 10) |
+| R-03 Acción no autorizada | Mitigado: `test_mutation_is_denied` |
+| R-04 Credencial en el código o en el historial | Mitigado: `test_api_key_not_hardcoded_in_source` |
+| R-07 Entrada no validada en herramientas | Mitigado: `test_tool_document_id_invalid_format` |
+| R-08 Credencial en los registros | Mitigado: `test_logs_redact_api_key` |
+| R-09 Clave comprometida que sigue siendo válida | Mitigado con rotación manual: `test_rotation_rejects_old_key_and_accepts_new` |
+| R-10 Secreto legible en el equipo y en los metadatos del contenedor | En seguimiento: requiere un gestor de secretos |
 
-Limitaciones que siguen abiertas en esta versión:
+Limitaciones que siguen abiertas: una única clave compartida, sin identidad por usuario ni por tenant, sin caducidad, rotación manual con interrupción y sin análisis automático de secretos en cada cambio (Unidad 7).
 
-- Una única clave compartida, sin identidad por usuario ni por tenant.
-- Sin rotación ni caducidad de la clave.
-- Clave guardada en un fichero local.
-- Sin límite de peticiones.
-- HTTP sin cifrar, aunque solo en el propio equipo.
-- El contenido no fiable de los documentos sigue llegando al modelo.
+## Otros archivos
 
-La gestión de secretos se trata en la Unidad 4.
+Se conservan como material complementario y no forman parte de los cuatro ejemplos:
 
-## Detener el laboratorio
+- `scripts/demo_unidad_04_gitleaks.sh`: detección de credenciales con Gitleaks en un repositorio de prácticas (`docker run --rm -v ./scripts:/scripts:ro --entrypoint sh ghcr.io/gitleaks/gitleaks:v8.28.0 /scripts/demo_unidad_04_gitleaks.sh`).
+- `app/soporte.py` y `scripts/incidencia_unidad_04.py`: punto de partida del ejercicio de la unidad.
+- `scripts/demo_unidad_01.py`, `scripts/demo_unidad_02.py`, `scripts/demo_unidad_03.py` y `scripts/check_lab.py`: demostraciones de unidades anteriores.
+
+## Detener los servicios
 
 ```bash
+docker compose logs --tail=30 api
 docker compose down
 ```
 
-Detiene y elimina los contenedores y la red del laboratorio. Las imágenes y `.env` se conservan, así que el siguiente arranque es más rápido.
+Al terminar, borra la variable de la terminal: `unset CLAVE` (WSL / Linux) o `Remove-Variable clave` (PowerShell). `.env` se conserva para la siguiente unidad.
 
 ## Reglas del laboratorio
 
 - La API solo se publica en `127.0.0.1`; `mock-llm` y `tools` permanecen en la red privada de Docker.
 - El servicio de herramientas nunca ejecuta operaciones destructivas.
-- No subas `.env` a Git ni compartas la clave.
 - No despliegues este laboratorio en un servidor accesible desde Internet.
-- Nunca introduzcas credenciales ni datos reales.
+- Nunca introduzcas credenciales ni datos reales. Las credenciales de los ejemplos son ficticias o se generan al ejecutarlos.
