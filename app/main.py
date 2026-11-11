@@ -16,9 +16,12 @@ class Question(BaseModel):
     question: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=QUESTION_MAX_LENGTH)]
     tenant: str = Field(default='empresa-a', min_length=1, max_length=60)
 
+# Identificadores con el formato de los documentos del laboratorio: empresa-<nombre>-<tres dígitos>
+DOCUMENT_ID_PATTERN = r'^empresa-[a-z]+-[0-9]{3}$'
+
 class ToolCall(BaseModel):
-    operation: str
-    document_id: str
+    operation: str = Field(min_length=1, max_length=40)
+    document_id: str = Field(max_length=60, pattern=DOCUMENT_ID_PATTERN)
 
 @app.get('/health')
 def health():

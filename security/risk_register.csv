@@ -2,3 +2,4 @@ id,activo,amenaza,impacto,probabilidad,control,evidencia,estado
 R-01,API,Acceso sin credencial,Alto,Media,Autenticación,test_ask_requires_api_key,Mitigado
 R-02,Documentos RAG,Acceso a tenant ajeno,Alto,Media,Filtro de identidad,pendiente_U10_aislamiento,En seguimiento
 R-03,Agente,Acción no autorizada,Alto,Media,Allowlist,test_mutation_is_denied,Mitigado
+R-07,Herramientas,Entrada no validada en herramientas,Medio,Media,Validación de esquema,test_tool_document_id_invalid_format,Mitigado
