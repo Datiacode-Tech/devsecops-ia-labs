@@ -7,3 +7,8 @@ R-07,Herramientas,Entrada no validada en herramientas,Medio,Media,Validación de
 R-08,Registros de la API,Credencial expuesta en los logs,Alto,Media,Registro del motivo sin el valor y filtro de redacción,test_logs_redact_api_key,Mitigado
 R-09,Credencial de la API,Clave comprometida que sigue siendo válida,Alto,Media,Rotación manual con recreación del servicio api,test_rotation_rejects_old_key_and_accepts_new,Mitigado
 R-10,Credencial de la API,Secreto legible en el equipo y en los metadatos del contenedor (.env y variables de entorno),Medio,Media,Gestor de secretos con control de acceso y auditoría,pendiente_gestor_de_secretos,En seguimiento
+R-12,Contenedores api y mock-llm,Proceso ejecutado como root dentro del contenedor,Alto,Media,Usuario sin privilegios (UID 10001) en la imagen,test_process_runs_as_non_root,Mitigado
+R-13,Contenedores api y mock-llm,Modificación del código o persistencia de un atacante en el sistema de archivos,Medio,Media,Sistema de archivos de solo lectura y /tmp en tmpfs con noexec,test_root_filesystem_is_read_only,Mitigado
+R-14,Contenedores api y mock-llm,Escalada de privilegios mediante capacidades del kernel o binarios setuid,Alto,Baja,cap_drop ALL y no-new-privileges,test_capabilities_are_dropped,Mitigado
+R-15,Equipo anfitrión,Agotamiento de memoria CPU o procesos por un contenedor,Medio,Media,Límites de memoria CPU y procesos en los tres servicios; healthchecks,test_memory_limit_is_set,Mitigado
+R-16,Imágenes Docker,Vulnerabilidades conocidas en paquetes de la imagen base,Medio,Media,Análisis manual con Trivy y revisión de los hallazgos,pendiente_U6_cadena_de_suministro,En seguimiento

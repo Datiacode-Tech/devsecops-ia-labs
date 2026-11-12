@@ -1,5 +1,5 @@
 {
-  "stage": 4,
-  "name": "Gestión segura de secretos y credenciales",
+  "stage": 5,
+  "name": "Seguridad y endurecimiento de contenedores Docker",
   "mode": "laboratorio local y datos ficticios"
 }

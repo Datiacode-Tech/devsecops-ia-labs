@@ -1,6 +1,8 @@
 services:
   api:
     build: .
+    # Nombre fijo de la imagen: permite analizarla con Trivy con el mismo comando en cualquier carpeta.
+    image: devsecops-ia-lab/api:local
     environment:
       # Obligatoria y sin valor por defecto: se lee de .env (ver .env.example).
       DEMO_API_KEY: ${DEMO_API_KEY:?Falta DEMO_API_KEY. Copia .env.example a .env y genera una clave}
@@ -10,19 +12,81 @@ services:
       # Regla permanente del laboratorio: la API solo escucha en el propio equipo.
       - "127.0.0.1:8000:8000"
     depends_on:
-      - mock-llm
-      - tools
-    networks: [curso]
+      mock-llm:
+        condition: service_healthy
+      tools:
+        condition: service_healthy
+    # frontend: publicación del puerto; backend: comunicación con mock-llm y tools.
+    networks: [frontend, backend]
+    # Endurecimiento (Unidad 5)
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=16m
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 256m
+    # Igual que mem_limit: sin esta línea Docker permite usar otro tanto en swap.
+    memswap_limit: 256m
+    cpus: 1.0
+    pids_limit: 128
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 20s
+      start_interval: 1s
+
   mock-llm:
     build:
       context: .
       dockerfile: docker/Dockerfile.mock
-    networks: [curso]
+    image: devsecops-ia-lab/mock-llm:local
+    # Sin puertos publicados: solo la API lo usa, a través de la red interna.
+    networks: [backend]
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=16m
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 128m
+    memswap_limit: 128m
+    cpus: 0.5
+    pids_limit: 64
+    healthcheck:
+      # La imagen no incluye curl: se comprueba con Python que el puerto acepta conexiones.
+      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('127.0.0.1', 8100), 2).close()"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 20s
+      start_interval: 1s
+
   tools:
     build:
       context: .
       dockerfile: docker/Dockerfile.tools
-    networks: [curso]
+    image: devsecops-ia-lab/tools:local
+    # Sin puertos publicados: solo la API lo usa, a través de la red interna.
+    networks: [backend]
+    mem_limit: 128m
+    memswap_limit: 128m
+    cpus: 0.5
+    pids_limit: 64
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('127.0.0.1', 8200), 2).close()"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 20s
+      start_interval: 1s
+
 networks:
-  curso:
+  frontend:
     driver: bridge
+  backend:
+    driver: bridge
+    # Red interna: sin salida a Internet ni al equipo anfitrión.
+    internal: true
