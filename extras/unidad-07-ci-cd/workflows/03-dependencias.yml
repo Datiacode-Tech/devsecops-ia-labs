@@ -1,0 +1,49 @@
+# Unidad 7 · Ejemplo 3: análisis de dependencias con Trivy.
+# Para activarlo, cópialo en .github/workflows/ de TU repositorio de prácticas.
+name: "U7 · 3 · Dependencias"
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  # La misma versión que en las unidades 5 y 6, fijada por número y por digest.
+  TRIVY: aquasec/trivy:0.76.1@sha256:790fd66d1697395d8693d1acaa1ea702406a20f109b6fc7bac8db623eca6c06c
+
+jobs:
+  dependencias:
+    name: Dependencias con Trivy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Preparar Python 3.12
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Instalar las dependencias
+        run: python -m pip install -r requirements.txt
+
+      - name: Inventario con versiones exactas
+        # requirements.txt usa rangos: Trivy necesita las versiones realmente instaladas.
+        run: |
+          mkdir -p artifacts
+          python -m pip freeze > artifacts/requirements-instalados.txt
+          cat artifacts/requirements-instalados.txt
+
+      - name: Analizar vulnerabilidades HIGH y CRITICAL
+        # --exit-code 1: si encuentra alguna vulnerabilidad de esa gravedad, el job falla.
+        run: >-
+          docker run --rm
+          -v "$PWD/artifacts/requirements-instalados.txt:/src/requirements.txt:ro"
+          "$TRIVY" fs --quiet --scanners vuln --severity HIGH,CRITICAL --exit-code 1 /src

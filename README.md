@@ -2,7 +2,20 @@
 
 **Entorno docente aislado**, no apto para producción. Utiliza datos de empresas ficticias, un modelo **simulado** y un servicio HTTP didáctico de herramientas que **no implementa MCP completo**.
 
-El proyecto evoluciona a lo largo del curso: cada unidad incorpora nuevas funcionalidades y controles de seguridad. Esta versión corresponde a la **Unidad 6: Seguridad de la cadena de suministro de software y modelos** (`course_stage.json`, etapa 6). Los ejemplos de la Unidad 6 están en [`extras/unidad-06-cadena-suministro/README.md`](extras/unidad-06-cadena-suministro/README.md). El resto de este documento describe el laboratorio, que no cambia respecto a la Unidad 5, y conserva los procedimientos de esa unidad.
+El proyecto evoluciona a lo largo del curso: cada unidad incorpora nuevas funcionalidades y controles de seguridad. Esta versión corresponde a la **Unidad 7: Automatización de seguridad en CI/CD con GitHub Actions** (`course_stage.json`, etapa 7). Los ejemplos de la Unidad 7 están en [`extras/unidad-07-ci-cd/README.md`](extras/unidad-07-ci-cd/README.md), y los de la Unidad 6, en [`extras/unidad-06-cadena-suministro/README.md`](extras/unidad-06-cadena-suministro/README.md). El resto de este documento describe el laboratorio, que no cambia respecto a la Unidad 5, y conserva los procedimientos de esa unidad.
+
+## Unidad 7: automatización de seguridad en CI/CD
+
+Las comprobaciones que hasta ahora se ejecutaban a mano se ejecutan solas en GitHub Actions cada vez que se propone un cambio. Cuatro workflows de ejemplo, que no modifican la API ni los servicios:
+
+| N.º | Ejemplo | Workflow |
+|---|---|---|
+| 1 | Primer pipeline CI: pruebas con pytest | `extras/unidad-07-ci-cd/workflows/01-pruebas.yml` |
+| 2 | Detectar secretos con Gitleaks | `extras/unidad-07-ci-cd/workflows/02-secretos.yml` |
+| 3 | Analizar dependencias con Trivy | `extras/unidad-07-ci-cd/workflows/03-dependencias.yml` |
+| 4 | Pipeline DevSecOps completo | `extras/unidad-07-ci-cd/workflows/04-devsecops.yml` |
+
+Los workflows solo se ejecutan si se copian en `.github/workflows/` de un repositorio propio en GitHub: [`extras/unidad-07-ci-cd/README.md`](extras/unidad-07-ci-cd/README.md) explica cómo hacerlo.
 
 ## Unidad 6: seguridad de la cadena de suministro
 
@@ -84,22 +97,22 @@ docker compose version
 
 ## Preparación
 
-### 1. Descargar la versión de la Unidad 6
+### 1. Descargar la versión de la Unidad 7
 
 El mismo comando sirve en WSL / Linux y en PowerShell:
 
 ```bash
-git clone --branch unidad-06 https://github.com/Datiacode-Tech/devsecops-ia-labs.git devsecops-ia-unidad-06
-cd devsecops-ia-unidad-06
+git clone --branch unidad-07 https://github.com/Datiacode-Tech/devsecops-ia-labs.git devsecops-ia-unidad-07
+cd devsecops-ia-unidad-07
 ```
 
 Git avisa de que la copia está en estado *detached HEAD*: es lo normal al descargar una etiqueta.
 
-Si continúas en la carpeta de la Unidad 5, detén antes sus servicios (`docker compose down`) y cambia de versión. Tu `.env` se conserva:
+Si continúas en la carpeta de la Unidad 6, detén antes sus servicios (`docker compose down`) y cambia de versión. Tu `.env` se conserva:
 
 ```bash
 git fetch --tags
-git checkout unidad-06
+git checkout unidad-07
 ```
 
 ### 2. Crear `.env` con una clave generada
@@ -392,7 +405,7 @@ foreach ($s in 'api', 'mock-llm', 'tools') { "== $s"; docker compose run --rm --
 
 `security/risk_register.csv` relaciona cada riesgo con su control y su evidencia. Una evidencia `test_*` es una prueba que existe en `tests/`; una evidencia pendiente (`pendiente_*`) no permite marcar el riesgo como `Mitigado`.
 
-| Riesgo | Estado en la Unidad 6 |
+| Riesgo | Estado en la Unidad 7 |
 |---|---|
 | R-01, R-03, R-04, R-07, R-08, R-09 | Mitigados (unidades 3 y 4) |
 | R-02 Acceso a tenant ajeno | En seguimiento (Unidad 10) |
@@ -410,6 +423,7 @@ foreach ($s in 'api', 'mock-llm', 'tools') { "== $s"; docker compose run --rm --
 Se conservan como material de unidades anteriores o complementario:
 
 - `scripts/demo_unidad_05_limites.py`: demostración de los límites de memoria y procesos (`docker compose run --rm --no-deps -T -v ./scripts:/code/scripts:ro mock-llm python -m scripts.demo_unidad_05_limites`).
+- `extras/unidad-07-ci-cd/`: workflows de ejemplo de la Unidad 7.
 - `extras/unidad-06-cadena-suministro/`: ejemplos de la Unidad 6 y sus archivos de demostración.
 - `extras/unidad-04-docker-secrets/`: ejemplo de Docker Compose Secrets de la Unidad 4, independiente del laboratorio.
 - `scripts/demo_unidad_04_logs.py`, `scripts/demo_unidad_04_gitleaks.sh`, `app/soporte.py` y `scripts/incidencia_unidad_04.py`: material de la Unidad 4.
