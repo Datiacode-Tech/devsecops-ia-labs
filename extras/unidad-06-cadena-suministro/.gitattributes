@@ -1,0 +1,4 @@
+# Los archivos con hash de referencia deben llegar idénticos byte a byte:
+# sin conversión de finales de línea (core.autocrlf en Git para Windows).
+descargas/** -text
+modelos/** -text

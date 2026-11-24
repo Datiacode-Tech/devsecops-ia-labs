@@ -1,0 +1,11 @@
+{
+  "nombre": "clasificador-incidencias",
+  "version": "1.0.0",
+  "descripcion": "Artefacto FICTICIO que simula un modelo de IA: clasifica incidencias como urgentes o normales.",
+  "proveedor": "Laboratorio DevSecOps (datos inventados)",
+  "entradas": ["longitud_texto", "palabras_clave_urgencia", "cliente_prioritario"],
+  "pesos": [0.42, 1.35, 0.88],
+  "sesgo": -1.10,
+  "umbral_urgente": 0.50,
+  "etiquetas": ["normal", "urgente"]
+}

@@ -1,5 +1,5 @@
 {
-  "stage": 5,
-  "name": "Seguridad y endurecimiento de contenedores Docker",
+  "stage": 6,
+  "name": "Seguridad de la cadena de suministro de software y modelos",
   "mode": "laboratorio local y datos ficticios"
 }

@@ -1,0 +1,5 @@
+# Archivo de DEMOSTRACIÓN: versiones antiguas con vulnerabilidades publicadas.
+# Solo se analiza con Trivy. No lo instales (no uses pip install -r con este archivo).
+requests==2.19.1
+PyYAML==5.3
+Jinja2==2.10

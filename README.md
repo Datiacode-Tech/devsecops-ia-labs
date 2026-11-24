@@ -2,7 +2,20 @@
 
 **Entorno docente aislado**, no apto para producción. Utiliza datos de empresas ficticias, un modelo **simulado** y un servicio HTTP didáctico de herramientas que **no implementa MCP completo**.
 
-El proyecto evoluciona a lo largo del curso: cada unidad incorpora nuevas funcionalidades y controles de seguridad. Esta versión corresponde a los **ejemplos de la Unidad 5: Seguridad y endurecimiento de contenedores Docker** (`course_stage.json`, etapa 5).
+El proyecto evoluciona a lo largo del curso: cada unidad incorpora nuevas funcionalidades y controles de seguridad. Esta versión corresponde a la **Unidad 6: Seguridad de la cadena de suministro de software y modelos** (`course_stage.json`, etapa 6). Los ejemplos de la Unidad 6 están en [`extras/unidad-06-cadena-suministro/README.md`](extras/unidad-06-cadena-suministro/README.md). El resto de este documento describe el laboratorio, que no cambia respecto a la Unidad 5, y conserva los procedimientos de esa unidad.
+
+## Unidad 6: seguridad de la cadena de suministro
+
+Tu código puede ser correcto y, aun así, la aplicación puede ser vulnerable por lo que no has escrito tú: bibliotecas de terceros, paquetes descargados y modelos de IA. La Unidad 6 añade cuatro ejemplos que no modifican la API ni los servicios:
+
+| N.º | Ejemplo | Herramienta |
+|---|---|---|
+| 1 | Detectar vulnerabilidades en dependencias Python | Trivy |
+| 2 | Generar un SBOM | Trivy y `jq` |
+| 3 | Comprobar la integridad de un paquete | `sha256sum` |
+| 4 | Comprobar la integridad de un modelo de IA | `sha256sum` |
+
+Procedimientos, resultados esperados y ejercicios: [`extras/unidad-06-cadena-suministro/README.md`](extras/unidad-06-cadena-suministro/README.md). Se ejecutan desde la carpeta raíz del laboratorio, con los servicios construidos como se indica en «Preparación».
 
 ## Objetivos de la Unidad 5
 
@@ -71,27 +84,27 @@ docker compose version
 
 ## Preparación
 
-### 1. Descargar la versión de la Unidad 5
+### 1. Descargar la versión de la Unidad 6
 
 El mismo comando sirve en WSL / Linux y en PowerShell:
 
 ```bash
-git clone --branch unidad-05-ejemplos https://github.com/Datiacode-Tech/devsecops-ia-labs.git devsecops-ia-unidad-05
-cd devsecops-ia-unidad-05
+git clone --branch unidad-06 https://github.com/Datiacode-Tech/devsecops-ia-labs.git devsecops-ia-unidad-06
+cd devsecops-ia-unidad-06
 ```
 
 Git avisa de que la copia está en estado *detached HEAD*: es lo normal al descargar una etiqueta.
 
-Si continúas en la carpeta de la Unidad 4, detén antes sus servicios (`docker compose down`) y cambia de versión. Tu `.env` se conserva:
+Si continúas en la carpeta de la Unidad 5, detén antes sus servicios (`docker compose down`) y cambia de versión. Tu `.env` se conserva:
 
 ```bash
 git fetch --tags
-git checkout unidad-05-ejemplos
+git checkout unidad-06
 ```
 
 ### 2. Crear `.env` con una clave generada
 
-Si ya tienes `.env` de la Unidad 4, sáltate este paso.
+Si ya tienes `.env` de una unidad anterior, sáltate este paso.
 
 WSL / Linux:
 
@@ -379,7 +392,7 @@ foreach ($s in 'api', 'mock-llm', 'tools') { "== $s"; docker compose run --rm --
 
 `security/risk_register.csv` relaciona cada riesgo con su control y su evidencia. Una evidencia `test_*` es una prueba que existe en `tests/`; una evidencia pendiente (`pendiente_*`) no permite marcar el riesgo como `Mitigado`.
 
-| Riesgo | Estado en la Unidad 5 |
+| Riesgo | Estado en la Unidad 6 |
 |---|---|
 | R-01, R-03, R-04, R-07, R-08, R-09 | Mitigados (unidades 3 y 4) |
 | R-02 Acceso a tenant ajeno | En seguimiento (Unidad 10) |
@@ -388,13 +401,16 @@ foreach ($s in 'api', 'mock-llm', 'tools') { "== $s"; docker compose run --rm --
 | R-13 Escritura en el sistema de archivos de `api` y `mock-llm` | Mitigado: `test_root_filesystem_is_read_only` |
 | R-14 Capacidades y escalada de privilegios en `api` y `mock-llm` | Mitigado: `test_capabilities_are_dropped` |
 | R-15 Agotamiento de recursos del equipo | Mitigado: `test_memory_limit_is_set` |
-| R-16 Vulnerabilidades conocidas en la imagen base | En seguimiento: análisis manual con Trivy |
+| R-16 Vulnerabilidades conocidas en la imagen base | En seguimiento: análisis manual con Trivy (Unidad 5) |
+| R-18 Vulnerabilidades conocidas en dependencias Python | En seguimiento: análisis manual con Trivy y SBOM (Unidad 6, ejemplos 1 y 2) |
+| R-19 Paquete o modelo modificado en origen o en tránsito | En seguimiento: verificación manual de SHA-256 (Unidad 6, ejemplos 3 y 4) |
 
 ## Otros archivos
 
 Se conservan como material de unidades anteriores o complementario:
 
 - `scripts/demo_unidad_05_limites.py`: demostración de los límites de memoria y procesos (`docker compose run --rm --no-deps -T -v ./scripts:/code/scripts:ro mock-llm python -m scripts.demo_unidad_05_limites`).
+- `extras/unidad-06-cadena-suministro/`: ejemplos de la Unidad 6 y sus archivos de demostración.
 - `extras/unidad-04-docker-secrets/`: ejemplo de Docker Compose Secrets de la Unidad 4, independiente del laboratorio.
 - `scripts/demo_unidad_04_logs.py`, `scripts/demo_unidad_04_gitleaks.sh`, `app/soporte.py` y `scripts/incidencia_unidad_04.py`: material de la Unidad 4.
 - `scripts/demo_unidad_01.py` a `scripts/demo_unidad_03.py` y `scripts/check_lab.py`: demostraciones de unidades anteriores.
