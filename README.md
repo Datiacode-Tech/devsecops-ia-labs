@@ -2,7 +2,20 @@
 
 **Entorno docente aislado**, no apto para producción. Utiliza datos de empresas ficticias, un modelo **simulado** y un servicio HTTP didáctico de herramientas que **no implementa MCP completo**.
 
-El proyecto evoluciona a lo largo del curso: cada unidad incorpora nuevas funcionalidades y controles de seguridad. Esta versión corresponde a la **Unidad 8: Gobernanza, protección y ciclo de vida de modelos de IA** (`course_stage.json`, etapa 8). Los ejemplos de la Unidad 8 están en [`extras/unidad-08-gobernanza-modelos/README.md`](extras/unidad-08-gobernanza-modelos/README.md); los de la Unidad 7, en [`extras/unidad-07-ci-cd/README.md`](extras/unidad-07-ci-cd/README.md), y los de la Unidad 6, en [`extras/unidad-06-cadena-suministro/README.md`](extras/unidad-06-cadena-suministro/README.md). El resto de este documento describe el laboratorio, que no cambia respecto a la Unidad 5, y conserva los procedimientos de esa unidad.
+El proyecto evoluciona a lo largo del curso: cada unidad incorpora nuevas funcionalidades y controles de seguridad. Esta versión corresponde a la **Unidad 9: Seguridad en LLM: Prompt Injection, Jailbreaking y Guardrails** (`course_stage.json`, etapa 9). Los ejemplos de la Unidad 9 están en [`extras/unidad-09-seguridad-llm/README.md`](extras/unidad-09-seguridad-llm/README.md); los de la Unidad 8, en [`extras/unidad-08-gobernanza-modelos/README.md`](extras/unidad-08-gobernanza-modelos/README.md); los de la Unidad 7, en [`extras/unidad-07-ci-cd/README.md`](extras/unidad-07-ci-cd/README.md), y los de la Unidad 6, en [`extras/unidad-06-cadena-suministro/README.md`](extras/unidad-06-cadena-suministro/README.md). El resto de este documento describe el laboratorio, que no cambia respecto a la Unidad 5, y conserva los procedimientos de esa unidad.
+
+## Unidad 9: seguridad en LLM
+
+Un mensaje del usuario o un documento externo pueden intentar cambiar el comportamiento de un asistente basado en un LLM. La Unidad 9 lo muestra con un asistente ficticio de soporte en dos versiones, vulnerable y protegida, sin modificar la API ni los servicios:
+
+| N.º | Ejemplo | Archivos |
+|---|---|---|
+| 1 | Prompt Injection directo | `extras/unidad-09-seguridad-llm/asistente.py` |
+| 2 | Prompt Injection indirecto | `extras/unidad-09-seguridad-llm/documentos/` |
+| 3 | Jailbreaking | `extras/unidad-09-seguridad-llm/politica.txt` |
+| 4 | Guardrails y pruebas automatizadas | `extras/unidad-09-seguridad-llm/guardrails.py`, `test_guardrails.py` |
+
+El laboratorio no tiene un LLM real: el asistente usa un **modelo simulado determinista** que imita fallos conocidos, y `mock-llm` no interpreta instrucciones. Los controles son reales, pero sus resultados no miden la resistencia de ningún modelo. La API todavía no aplica guardrails: el documento `empresa-a-002` llega con su instrucción de prueba hasta la respuesta de `/ask`. Guía: [`extras/unidad-09-seguridad-llm/README.md`](extras/unidad-09-seguridad-llm/README.md).
 
 ## Unidad 8: gobernanza y ciclo de vida de modelos de IA
 
@@ -110,22 +123,22 @@ docker compose version
 
 ## Preparación
 
-### 1. Descargar la versión de la Unidad 8
+### 1. Descargar la versión de la Unidad 9
 
 El mismo comando sirve en WSL / Linux y en PowerShell:
 
 ```bash
-git clone --branch unidad-08 https://github.com/Datiacode-Tech/devsecops-ia-labs.git devsecops-ia-unidad-08
-cd devsecops-ia-unidad-08
+git clone --branch unidad-09 https://github.com/Datiacode-Tech/devsecops-ia-labs.git devsecops-ia-unidad-09
+cd devsecops-ia-unidad-09
 ```
 
 Git avisa de que la copia está en estado *detached HEAD*: es lo normal al descargar una etiqueta.
 
-Si continúas en la carpeta de la Unidad 7, detén antes sus servicios (`docker compose down`) y cambia de versión. Tu `.env` se conserva:
+Si continúas en la carpeta de la Unidad 8, detén antes sus servicios (`docker compose down`) y cambia de versión. Tu `.env` se conserva:
 
 ```bash
 git fetch --tags
-git checkout unidad-08
+git checkout unidad-09
 ```
 
 ### 2. Crear `.env` con una clave generada
@@ -418,7 +431,7 @@ foreach ($s in 'api', 'mock-llm', 'tools') { "== $s"; docker compose run --rm --
 
 `security/risk_register.csv` relaciona cada riesgo con su control y su evidencia. Una evidencia `test_*` es una prueba que existe en `tests/`; una evidencia pendiente (`pendiente_*`) no permite marcar el riesgo como `Mitigado`.
 
-| Riesgo | Estado en la Unidad 8 |
+| Riesgo | Estado en la Unidad 9 |
 |---|---|
 | R-01, R-03, R-04, R-07, R-08, R-09 | Mitigados (unidades 3 y 4) |
 | R-02 Acceso a tenant ajeno | En seguimiento (Unidad 10) |
@@ -431,12 +444,14 @@ foreach ($s in 'api', 'mock-llm', 'tools') { "== $s"; docker compose run --rm --
 | R-18 Vulnerabilidades conocidas en dependencias Python | En seguimiento: análisis manual con Trivy y SBOM (Unidad 6, ejemplos 1 y 2) |
 | R-19 Paquete o modelo modificado en origen o en tránsito | En seguimiento: verificación manual de SHA-256 (Unidad 6, ejemplos 3 y 4) |
 | R-20 Uso de un modelo no aprobado, retirado o sin responsable | En seguimiento: registro de modelos, validación técnica y estados (Unidad 8) |
+| R-21 Prompt Injection directo o indirecto en `/ask` | En seguimiento: guardrails de ejemplo fuera de la API (Unidad 9) |
 
 ## Otros archivos
 
 Se conservan como material de unidades anteriores o complementario:
 
 - `scripts/demo_unidad_05_limites.py`: demostración de los límites de memoria y procesos (`docker compose run --rm --no-deps -T -v ./scripts:/code/scripts:ro mock-llm python -m scripts.demo_unidad_05_limites`).
+- `extras/unidad-09-seguridad-llm/`: ejemplos de la Unidad 9.
 - `extras/unidad-08-gobernanza-modelos/`: ejemplos de la Unidad 8.
 - `extras/unidad-07-ci-cd/`: workflows de ejemplo de la Unidad 7.
 - `extras/unidad-06-cadena-suministro/`: ejemplos de la Unidad 6 y sus archivos de demostración.

@@ -1,5 +1,5 @@
 {
-  "stage": 8,
-  "name": "Gobernanza, protección y ciclo de vida de modelos de IA",
+  "stage": 9,
+  "name": "Seguridad en LLM: Prompt Injection, Jailbreaking y Guardrails",
   "mode": "laboratorio local y datos ficticios"
 }
