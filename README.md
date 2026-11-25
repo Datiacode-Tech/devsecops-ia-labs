@@ -2,7 +2,20 @@
 
 **Entorno docente aislado**, no apto para producción. Utiliza datos de empresas ficticias, un modelo **simulado** y un servicio HTTP didáctico de herramientas que **no implementa MCP completo**.
 
-El proyecto evoluciona a lo largo del curso: cada unidad incorpora nuevas funcionalidades y controles de seguridad. Esta versión corresponde a la **Unidad 7: Automatización de seguridad en CI/CD con GitHub Actions** (`course_stage.json`, etapa 7). Los ejemplos de la Unidad 7 están en [`extras/unidad-07-ci-cd/README.md`](extras/unidad-07-ci-cd/README.md), y los de la Unidad 6, en [`extras/unidad-06-cadena-suministro/README.md`](extras/unidad-06-cadena-suministro/README.md). El resto de este documento describe el laboratorio, que no cambia respecto a la Unidad 5, y conserva los procedimientos de esa unidad.
+El proyecto evoluciona a lo largo del curso: cada unidad incorpora nuevas funcionalidades y controles de seguridad. Esta versión corresponde a la **Unidad 8: Gobernanza, protección y ciclo de vida de modelos de IA** (`course_stage.json`, etapa 8). Los ejemplos de la Unidad 8 están en [`extras/unidad-08-gobernanza-modelos/README.md`](extras/unidad-08-gobernanza-modelos/README.md); los de la Unidad 7, en [`extras/unidad-07-ci-cd/README.md`](extras/unidad-07-ci-cd/README.md), y los de la Unidad 6, en [`extras/unidad-06-cadena-suministro/README.md`](extras/unidad-06-cadena-suministro/README.md). El resto de este documento describe el laboratorio, que no cambia respecto a la Unidad 5, y conserva los procedimientos de esa unidad.
+
+## Unidad 8: gobernanza y ciclo de vida de modelos de IA
+
+Un modelo no debería usarse sin saber qué es, de dónde procede, qué versión es, quién responde de él, qué comprobaciones ha superado y si alguien ha aprobado su uso. La Unidad 8 lo demuestra con el modelo ficticio de la Unidad 6, unos pocos archivos JSON y dos scripts de Python estándar, sin modificar la API ni los servicios:
+
+| N.º | Ejemplo | Herramientas |
+|---|---|---|
+| 1 | Registrar un modelo de IA | `extras/unidad-08-gobernanza-modelos/registro-modelos.json`, `jq` |
+| 2 | Versionar y controlar cambios | `git diff`, `sha256sum` |
+| 3 | Validar un modelo antes de aprobarlo | `extras/unidad-08-gobernanza-modelos/validar_modelo.py` |
+| 4 | Aprobar, rechazar y retirar modelos | `extras/unidad-08-gobernanza-modelos/cambiar_estado.py` |
+
+La validación técnica no equivale a una evaluación funcional del modelo ni a una aprobación, y la API todavía no aplica los estados del registro. Los ejemplos trabajan sobre una copia en `artifacts/` y no necesitan Docker: [`extras/unidad-08-gobernanza-modelos/README.md`](extras/unidad-08-gobernanza-modelos/README.md).
 
 ## Unidad 7: automatización de seguridad en CI/CD
 
@@ -97,22 +110,22 @@ docker compose version
 
 ## Preparación
 
-### 1. Descargar la versión de la Unidad 7
+### 1. Descargar la versión de la Unidad 8
 
 El mismo comando sirve en WSL / Linux y en PowerShell:
 
 ```bash
-git clone --branch unidad-07 https://github.com/Datiacode-Tech/devsecops-ia-labs.git devsecops-ia-unidad-07
-cd devsecops-ia-unidad-07
+git clone --branch unidad-08 https://github.com/Datiacode-Tech/devsecops-ia-labs.git devsecops-ia-unidad-08
+cd devsecops-ia-unidad-08
 ```
 
 Git avisa de que la copia está en estado *detached HEAD*: es lo normal al descargar una etiqueta.
 
-Si continúas en la carpeta de la Unidad 6, detén antes sus servicios (`docker compose down`) y cambia de versión. Tu `.env` se conserva:
+Si continúas en la carpeta de la Unidad 7, detén antes sus servicios (`docker compose down`) y cambia de versión. Tu `.env` se conserva:
 
 ```bash
 git fetch --tags
-git checkout unidad-07
+git checkout unidad-08
 ```
 
 ### 2. Crear `.env` con una clave generada
@@ -405,7 +418,7 @@ foreach ($s in 'api', 'mock-llm', 'tools') { "== $s"; docker compose run --rm --
 
 `security/risk_register.csv` relaciona cada riesgo con su control y su evidencia. Una evidencia `test_*` es una prueba que existe en `tests/`; una evidencia pendiente (`pendiente_*`) no permite marcar el riesgo como `Mitigado`.
 
-| Riesgo | Estado en la Unidad 7 |
+| Riesgo | Estado en la Unidad 8 |
 |---|---|
 | R-01, R-03, R-04, R-07, R-08, R-09 | Mitigados (unidades 3 y 4) |
 | R-02 Acceso a tenant ajeno | En seguimiento (Unidad 10) |
@@ -417,12 +430,14 @@ foreach ($s in 'api', 'mock-llm', 'tools') { "== $s"; docker compose run --rm --
 | R-16 Vulnerabilidades conocidas en la imagen base | En seguimiento: análisis manual con Trivy (Unidad 5) |
 | R-18 Vulnerabilidades conocidas en dependencias Python | En seguimiento: análisis manual con Trivy y SBOM (Unidad 6, ejemplos 1 y 2) |
 | R-19 Paquete o modelo modificado en origen o en tránsito | En seguimiento: verificación manual de SHA-256 (Unidad 6, ejemplos 3 y 4) |
+| R-20 Uso de un modelo no aprobado, retirado o sin responsable | En seguimiento: registro de modelos, validación técnica y estados (Unidad 8) |
 
 ## Otros archivos
 
 Se conservan como material de unidades anteriores o complementario:
 
 - `scripts/demo_unidad_05_limites.py`: demostración de los límites de memoria y procesos (`docker compose run --rm --no-deps -T -v ./scripts:/code/scripts:ro mock-llm python -m scripts.demo_unidad_05_limites`).
+- `extras/unidad-08-gobernanza-modelos/`: ejemplos de la Unidad 8.
 - `extras/unidad-07-ci-cd/`: workflows de ejemplo de la Unidad 7.
 - `extras/unidad-06-cadena-suministro/`: ejemplos de la Unidad 6 y sus archivos de demostración.
 - `extras/unidad-04-docker-secrets/`: ejemplo de Docker Compose Secrets de la Unidad 4, independiente del laboratorio.

@@ -1,0 +1,30 @@
+{
+  "modelos": [
+    {
+      "id": "clasificador-incidencias@1.0.0",
+      "nombre": "clasificador-incidencias",
+      "version": "1.0.0",
+      "descripcion": "Modelo FICTICIO que clasifica incidencias de soporte como urgentes o normales.",
+      "origen": "Laboratorio DevSecOps (datos inventados)",
+      "responsable": "equipo-plataforma-ia",
+      "fecha_registro": "2026-11-02",
+      "estado": "aprobado",
+      "artefacto": "modelos/clasificador-incidencias-v1.0.0.json",
+      "sha256": "e6b4ab0f6f5fb20216e3f3377d975840d1b9e6bdcacae52ea3d84398eb709b94",
+      "uso_previsto": "Ordenar la cola de incidencias de soporte del laboratorio. Las decisiones finales las toma una persona."
+    },
+    {
+      "id": "clasificador-incidencias@1.1.0",
+      "nombre": "clasificador-incidencias",
+      "version": "1.1.0",
+      "descripcion": "Modelo FICTICIO que clasifica incidencias de soporte como urgentes o normales. Umbral de urgencia ajustado.",
+      "origen": "Laboratorio DevSecOps (datos inventados)",
+      "responsable": "equipo-plataforma-ia",
+      "fecha_registro": "2026-11-20",
+      "estado": "registrado",
+      "artefacto": "modelos/clasificador-incidencias-v1.1.0.json",
+      "sha256": "adf76db8836372d954fe9c48d2570f692c5d9802532742344a513c89db0f2190",
+      "uso_previsto": "Ordenar la cola de incidencias de soporte del laboratorio. Las decisiones finales las toma una persona."
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+{"fecha": "2026-11-02", "id": "clasificador-incidencias@1.0.0", "anterior": null, "nuevo": "registrado", "motivo": "Modelo recibido y registrado con su hash", "responsable": "equipo-plataforma-ia"}
+{"fecha": "2026-11-03", "id": "clasificador-incidencias@1.0.0", "anterior": "registrado", "nuevo": "en_revision", "motivo": "Solicitud de uso en la cola de soporte", "responsable": "equipo-plataforma-ia"}
+{"fecha": "2026-11-05", "id": "clasificador-incidencias@1.0.0", "anterior": "en_revision", "nuevo": "aprobado", "motivo": "Validación técnica superada y uso aceptado por el área de soporte", "responsable": "comite-modelos"}
+{"fecha": "2026-11-20", "id": "clasificador-incidencias@1.1.0", "anterior": null, "nuevo": "registrado", "motivo": "Nueva versión recibida: umbral de urgencia ajustado", "responsable": "equipo-plataforma-ia"}

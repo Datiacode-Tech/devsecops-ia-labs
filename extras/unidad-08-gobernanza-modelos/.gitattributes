@@ -1,0 +1,3 @@
+# Los modelos se comparan con su hash byte a byte:
+# sin conversión de finales de línea (core.autocrlf en Git para Windows).
+modelos/** -text
