@@ -2,7 +2,20 @@
 
 **Entorno docente aislado**, no apto para producción. Utiliza datos de empresas ficticias, un modelo **simulado** y un servicio HTTP didáctico de herramientas que **no implementa MCP completo**.
 
-El proyecto evoluciona a lo largo del curso: cada unidad incorpora nuevas funcionalidades y controles de seguridad. Esta versión corresponde a la **Unidad 9: Seguridad en LLM: Prompt Injection, Jailbreaking y Guardrails** (`course_stage.json`, etapa 9). Los ejemplos de la Unidad 9 están en [`extras/unidad-09-seguridad-llm/README.md`](extras/unidad-09-seguridad-llm/README.md); los de la Unidad 8, en [`extras/unidad-08-gobernanza-modelos/README.md`](extras/unidad-08-gobernanza-modelos/README.md); los de la Unidad 7, en [`extras/unidad-07-ci-cd/README.md`](extras/unidad-07-ci-cd/README.md), y los de la Unidad 6, en [`extras/unidad-06-cadena-suministro/README.md`](extras/unidad-06-cadena-suministro/README.md). El resto de este documento describe el laboratorio, que no cambia respecto a la Unidad 5, y conserva los procedimientos de esa unidad.
+El proyecto evoluciona a lo largo del curso: cada unidad incorpora nuevas funcionalidades y controles de seguridad. Esta versión corresponde a la **Unidad 10: Seguridad en RAG, agentes y MCP** (`course_stage.json`, etapa 10). Los ejemplos de la Unidad 10 están en [`extras/unidad-10-seguridad-rag-agentes-mcp/README.md`](extras/unidad-10-seguridad-rag-agentes-mcp/README.md); los de la Unidad 9, en [`extras/unidad-09-seguridad-llm/README.md`](extras/unidad-09-seguridad-llm/README.md); los de la Unidad 8, en [`extras/unidad-08-gobernanza-modelos/README.md`](extras/unidad-08-gobernanza-modelos/README.md); los de la Unidad 7, en [`extras/unidad-07-ci-cd/README.md`](extras/unidad-07-ci-cd/README.md), y los de la Unidad 6, en [`extras/unidad-06-cadena-suministro/README.md`](extras/unidad-06-cadena-suministro/README.md). El resto de este documento describe el laboratorio, que no cambia respecto a la Unidad 5, y conserva los procedimientos de esa unidad.
+
+## Unidad 10: seguridad en RAG, agentes y MCP
+
+Proteger el modelo no basta: también hay que proteger qué documentos se recuperan, su integridad y qué herramientas se ejecutan. La Unidad 10 lo comprueba contra la API real y demuestra los controles fuera de ella, sin modificarla:
+
+| N.º | Ejemplo | Archivos |
+|---|---|---|
+| 1 | Aislamiento entre empresas en RAG | `extras/unidad-10-seguridad-rag-agentes-mcp/rag.py`, `sesiones.json` |
+| 2 | Envenenamiento del contexto RAG | `rag.py`, `huellas-documentos.json`, `consultar_api.py` |
+| 3 | Seguridad en herramientas de agentes | `/tools/execute` de la API |
+| 4 | Seguridad en servidores MCP | `servidor_mcp_simulado.py` (simulación de los controles, no un servidor MCP) |
+
+Fallos que siguen presentes en la API y que la unidad deja documentados: `/ask` entrega documentos de otra empresa (R-02), un documento alterado llega a la respuesta (R-23) y `read_document` no comprueba a quién pertenece el documento (R-22). Guía: [`extras/unidad-10-seguridad-rag-agentes-mcp/README.md`](extras/unidad-10-seguridad-rag-agentes-mcp/README.md).
 
 ## Unidad 9: seguridad en LLM
 
@@ -123,22 +136,22 @@ docker compose version
 
 ## Preparación
 
-### 1. Descargar la versión de la Unidad 9
+### 1. Descargar la versión de la Unidad 10
 
 El mismo comando sirve en WSL / Linux y en PowerShell:
 
 ```bash
-git clone --branch unidad-09 https://github.com/Datiacode-Tech/devsecops-ia-labs.git devsecops-ia-unidad-09
-cd devsecops-ia-unidad-09
+git clone --branch unidad-10 https://github.com/Datiacode-Tech/devsecops-ia-labs.git devsecops-ia-unidad-10
+cd devsecops-ia-unidad-10
 ```
 
 Git avisa de que la copia está en estado *detached HEAD*: es lo normal al descargar una etiqueta.
 
-Si continúas en la carpeta de la Unidad 8, detén antes sus servicios (`docker compose down`) y cambia de versión. Tu `.env` se conserva:
+Si continúas en la carpeta de la Unidad 9, detén antes sus servicios (`docker compose down`) y cambia de versión. Tu `.env` se conserva:
 
 ```bash
 git fetch --tags
-git checkout unidad-09
+git checkout unidad-10
 ```
 
 ### 2. Crear `.env` con una clave generada
@@ -431,10 +444,10 @@ foreach ($s in 'api', 'mock-llm', 'tools') { "== $s"; docker compose run --rm --
 
 `security/risk_register.csv` relaciona cada riesgo con su control y su evidencia. Una evidencia `test_*` es una prueba que existe en `tests/`; una evidencia pendiente (`pendiente_*`) no permite marcar el riesgo como `Mitigado`.
 
-| Riesgo | Estado en la Unidad 9 |
+| Riesgo | Estado en la Unidad 10 |
 |---|---|
 | R-01, R-03, R-04, R-07, R-08, R-09 | Mitigados (unidades 3 y 4) |
-| R-02 Acceso a tenant ajeno | En seguimiento (Unidad 10) |
+| R-02 Acceso a tenant ajeno | En seguimiento: comprobado en `/ask`; filtro demostrado fuera de la API (Unidad 10) |
 | R-10 Secreto legible en el equipo y en los metadatos del contenedor | En seguimiento |
 | R-12 Proceso como root en `api` y `mock-llm` | Mitigado: `test_process_runs_as_non_root` |
 | R-13 Escritura en el sistema de archivos de `api` y `mock-llm` | Mitigado: `test_root_filesystem_is_read_only` |
@@ -445,12 +458,15 @@ foreach ($s in 'api', 'mock-llm', 'tools') { "== $s"; docker compose run --rm --
 | R-19 Paquete o modelo modificado en origen o en tránsito | En seguimiento: verificación manual de SHA-256 (Unidad 6, ejemplos 3 y 4) |
 | R-20 Uso de un modelo no aprobado, retirado o sin responsable | En seguimiento: registro de modelos, validación técnica y estados (Unidad 8) |
 | R-21 Prompt Injection directo o indirecto en `/ask` | En seguimiento: guardrails de ejemplo fuera de la API (Unidad 9) |
+| R-22 Lectura de un documento de otra empresa con `read_document` | En seguimiento: autorización por recurso demostrada en el servidor MCP simulado (Unidad 10) |
+| R-23 Documento RAG alterado | En seguimiento: huellas SHA-256 demostradas fuera de la API (Unidad 10) |
 
 ## Otros archivos
 
 Se conservan como material de unidades anteriores o complementario:
 
 - `scripts/demo_unidad_05_limites.py`: demostración de los límites de memoria y procesos (`docker compose run --rm --no-deps -T -v ./scripts:/code/scripts:ro mock-llm python -m scripts.demo_unidad_05_limites`).
+- `extras/unidad-10-seguridad-rag-agentes-mcp/`: ejemplos de la Unidad 10.
 - `extras/unidad-09-seguridad-llm/`: ejemplos de la Unidad 9.
 - `extras/unidad-08-gobernanza-modelos/`: ejemplos de la Unidad 8.
 - `extras/unidad-07-ci-cd/`: workflows de ejemplo de la Unidad 7.

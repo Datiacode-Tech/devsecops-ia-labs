@@ -1,6 +1,6 @@
 id,activo,amenaza,impacto,probabilidad,control,evidencia,estado
 R-01,API,Acceso sin credencial,Alto,Media,Autenticación,test_ask_requires_api_key,Mitigado
-R-02,Documentos RAG,Acceso a tenant ajeno,Alto,Media,Filtro de identidad,pendiente_U10_aislamiento,En seguimiento
+R-02,Documentos RAG,Acceso a tenant ajeno,Alto,Media,Filtro por la empresa de la identidad del servidor antes de entregar los documentos al modelo (demostrado fuera de la API en la Unidad 10),pendiente_filtro_tenant_en_api,En seguimiento
 R-03,Agente,Acción no autorizada,Alto,Media,Allowlist,test_mutation_is_denied,Mitigado
 R-04,Repositorio Git,Credencial escrita en el código o subida al historial,Alto,Media,Clave solo en .env excluido de Git; valores de ejemplo rechazados; revisión manual con Gitleaks,test_api_key_not_hardcoded_in_source,Mitigado
 R-07,Herramientas,Entrada no validada en herramientas,Medio,Media,Validación de esquema,test_tool_document_id_invalid_format,Mitigado
@@ -16,3 +16,5 @@ R-18,Dependencias Python,Versión con vulnerabilidad conocida en una biblioteca 
 R-19,Paquetes y modelos descargados,Archivo modificado en origen o en tránsito,Alto,Baja,Verificación manual del hash SHA-256 frente a una referencia de confianza antes de usarlo,pendiente_verificacion_automatica_hashes,En seguimiento
 R-20,Modelos de IA,Uso de una versión de modelo no aprobada retirada o sin responsable identificado,Alto,Media,Registro de modelos con responsable estado y SHA-256; validación técnica previa a la aprobación; historial de decisiones,pendiente_registro_modelos_en_aplicacion,En seguimiento
 R-21,Asistente /ask,Instrucciones maliciosas en la pregunta o en un documento recuperado (Prompt Injection directo o indirecto) que llegan al modelo sin filtrar,Alto,Media,Guardrails de ejemplo: detección de patrones conocidos; separación del contenido no confiable; validación de salidas; autorización de acciones fuera del modelo,pendiente_guardrails_en_api,En seguimiento
+R-22,Herramientas,Lectura de un documento de otra empresa con read_document: el formato es válido y la operación está permitida pero no se comprueba a quién pertenece el recurso,Alto,Media,Autorización por recurso en el servidor con la identidad de la sesión (demostrada en el servidor MCP simulado de la Unidad 10),pendiente_autorizacion_por_recurso_en_tools,En seguimiento
+R-23,Documentos RAG,Documento alterado en la colección que lleva datos falsos al contexto y a la respuesta,Alto,Baja,Huella SHA-256 de cada documento frente a un registro de confianza antes de usarlo (demostrada fuera de la API en la Unidad 10); control de quién publica documentos,pendiente_verificacion_integridad_documentos_en_api,En seguimiento

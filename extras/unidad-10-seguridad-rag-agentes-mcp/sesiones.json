@@ -1,0 +1,4 @@
+{
+  "ana": {"tenant": "empresa-a", "herramientas": ["read_document"]},
+  "bruno": {"tenant": "empresa-b", "herramientas": ["read_document"]}
+}

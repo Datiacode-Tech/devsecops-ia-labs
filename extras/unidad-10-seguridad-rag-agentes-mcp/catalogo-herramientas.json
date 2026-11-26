@@ -1,0 +1,14 @@
+{
+  "herramientas": [
+    {
+      "nombre": "read_document",
+      "descripcion": "Lee un documento de la empresa del usuario.",
+      "argumentos": {"document_id": "^empresa-[a-z]+-[0-9]{3}$"}
+    },
+    {
+      "nombre": "delete_document",
+      "descripcion": "Borra un documento. Ficticia: en este laboratorio no borra nada.",
+      "argumentos": {"document_id": "^empresa-[a-z]+-[0-9]{3}$"}
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 {
-  "stage": 9,
-  "name": "Seguridad en LLM: Prompt Injection, Jailbreaking y Guardrails",
+  "stage": 10,
+  "name": "Seguridad en RAG, agentes y MCP",
   "mode": "laboratorio local y datos ficticios"
 }

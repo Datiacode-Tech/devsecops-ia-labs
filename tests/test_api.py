@@ -74,7 +74,8 @@ def test_question_at_limit_is_accepted(mock_infer, auth):
 
 @patch('app.main.infer', return_value='[SIMULADO] ok')
 def test_tenant_isolation_still_pending(mock_infer, auth):
-    # R-02 sigue abierto: una API key válida no limita los documentos al tenant (Unidad 10).
+    # R-02 sigue abierto: una API key válida no limita los documentos al tenant.
+    # El filtro solo existe en la demostración de extras/unidad-10-seguridad-rag-agentes-mcp/.
     r = client.post('/ask', headers=auth, json={'question': 'presupuesto', 'tenant': 'empresa-a'})
     assert r.status_code == 200
     assert 'empresa-b-001' in r.json()['sources']
